@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import { build } from 'esbuild';
+const result = await build({entryPoints: ['src/lib/arSupport.ts'], bundle: true, format:'esm', write:false});
+const { checkARSupport, arErrorMessage } = await import(`data:text/javascript;base64,${Buffer.from(result.outputFiles[0].text).toString('base64')}`);
+const desktop = {userAgent:'Macintosh', platform:'MacIntel', touchPoints:0, secure:true, quickLookSupported:false};
+assert.equal((await checkARSupport(desktop)).mode,'unavailable');
+assert.match((await checkARSupport(desktop)).message,/does not support/);
+assert.match((await checkARSupport({...desktop,secure:false})).message,/laptop/);
+assert.match((await checkARSupport({...desktop,userAgent:'Android',secure:false})).message,/HTTPS/);
+assert.equal((await checkARSupport({...desktop,userAgent:'iPhone',quickLookSupported:true})).mode,'quick-look');
+assert.equal((await checkARSupport({...desktop,touchPoints:5,quickLookSupported:true})).mode,'quick-look');
+assert.match((await checkARSupport({...desktop,userAgent:'iPhone'})).message,/Safari/);
+assert.equal((await checkARSupport({...desktop,userAgent:'Android',xrSupported:async()=>true})).mode,'webxr');
+assert.equal((await checkARSupport({...desktop,xrSupported:async()=>false})).mode,'unavailable');
+assert.equal((await checkARSupport({...desktop,xrSupported:async()=>{throw Error('blocked')}})).mode,'unavailable');
+const denied = new Error();denied.name='NotAllowedError';assert.match(arErrorMessage(denied),/denied/);
+console.log('AR support routing: 10 checks passed');
