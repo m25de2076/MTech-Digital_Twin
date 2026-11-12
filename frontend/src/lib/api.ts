@@ -9,8 +9,8 @@ import type {
   TwinSummary,
 } from "../types";
 
-const API_BASE = "";
-export const STREAM_URL = `${location.protocol === "https:" ? "wss:" : "ws:"}//${location.host}/ws/twin`;
+const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/+$/, "");
+export const STREAM_URL = `${(API_BASE || location.origin).replace(/^http/, "ws")}/ws/twin`;
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
